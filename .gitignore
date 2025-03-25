@@ -1,0 +1,5 @@
+# Node modules (don't commit installed packages)
+node_modules/
+
+# Environment variables
+.env
