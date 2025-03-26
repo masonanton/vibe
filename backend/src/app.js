@@ -2,8 +2,8 @@ const express = require('express');
 const dotenv = require('dotenv');
 
 // Import routes
-const authRoutes = require('./routes/authRoutes'); // Import auth routes
-const playlistRoutes = require('./routes/playlistRoutes'); // Import playlist routes
+const authRoutes = require('../routes/authRoutes'); // Import auth routes
+const playlistRoutes = require('../routes/playlistRoutes'); // Import playlist routes
 
 dotenv.config(); // Load environment variables from .env file
 
