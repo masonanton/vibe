@@ -1,8 +1,17 @@
-require('dotenv').config();
+const path = require('path');
+// Explicitly load the .env file from the backend folder
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+
 const axios = require('axios'); // Import axios for making HTTP requests
 const clientId = process.env.SPOTIFY_CLIENT_ID; // Get the client ID from environment variables
 const clientSecret = process.env.SPOTIFY_CLIENT_SECRET; // Get the client secret from environment variables
 const redirectUri = process.env.SPOTIFY_REDIRECT_URI; // Get the redirect URI from environment variables
+const frontendUrl = process.env.FRONTEND_URL; // Get the frontend URL from environment variables
+
+// Debug log to ensure env values are loaded
+console.log('Client ID:', process.env.SPOTIFY_CLIENT_ID);
+console.log('Redirect URI:', process.env.SPOTIFY_REDIRECT_URI);
+console.log('Frontend URL:', process.env.FRONTEND_URL);
 
 // Redirect the user to Spotify for authentication
 exports.login = (req, res) => {
@@ -10,7 +19,7 @@ exports.login = (req, res) => {
 
     // Construct the Spotify authorization URL with the necessary parameters
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
-    console.log('Redirecting to Spotify login...');
+    console.log('Redirecting to Spotify login...', authUrl);
     res.redirect(authUrl);
 };
 
@@ -37,12 +46,10 @@ exports.callback = async (req, res) => {
         // Extract the access token
         const { access_token } = response.data;
 
-        // Redirect the user back to the frontend with the access token
-        res.redirect(`/?access_token=${access_token}`);
+        // Redirect the user back to the frontend with the access token in the query
+        res.redirect(`${frontendUrl}/?access_token=${access_token}`);
     } catch (err) {
         console.error('Error during Spotify authentication:', err);
         res.status(500).json({ error: 'Authentication failed', message: err.message });
     }
 };
-// This code handles the authentication process with Spotify using OAuth 2.0.
-// It redirects the user to Spotify for login and handles the callback to exchange the authorization code for access and refresh tokens.
