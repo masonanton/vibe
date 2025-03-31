@@ -34,7 +34,7 @@ app.use((err, req, res, next) => {
     }); // Send a 500 response for any errors
 });
 
-const PORT = process.env.PORT || 3001; // Set the port from environment variable or default to 3001
+const PORT = process.env.PORT || 3000 // Set the port from environment variable or default to 3001
 
 // Start the server and listen on the specified port
 app.listen(PORT, () => {

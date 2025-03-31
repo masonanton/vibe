@@ -1,3 +1,4 @@
+require('dotenv').config();
 const axios = require('axios'); // Import axios for making HTTP requests
 const clientId = process.env.SPOTIFY_CLIENT_ID; // Get the client ID from environment variables
 const clientSecret = process.env.SPOTIFY_CLIENT_SECRET; // Get the client secret from environment variables
