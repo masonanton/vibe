@@ -10,6 +10,7 @@ exports.login = (req, res) => {
 
     // Construct the Spotify authorization URL with the necessary parameters
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+    console.log('Redirecting to Spotify login...');
     res.redirect(authUrl);
 };
 
@@ -19,7 +20,7 @@ exports.callback = async (req, res) => {
 
     try {
         const response = await axios.post(
-            'https://accounts.spotify.com/api/token', 
+            'https://accounts.spotify.com/api/token',
             new URLSearchParams({
                 code,
                 redirect_uri: redirectUri,
@@ -28,15 +29,20 @@ exports.callback = async (req, res) => {
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`, // Basic auth for client credentials
-                }
+                    Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+                },
             }
         );
-        res.json(response.data); // Send the response back to the client with the access and refresh tokens
+
+        // Extract the access token
+        const { access_token } = response.data;
+
+        // Redirect the user back to the frontend with the access token
+        res.redirect(`/?access_token=${access_token}`);
     } catch (err) {
-        console.error('Error during Spotify authentication:', err); // Log any errors that occur during authentication
-        res.status(500).json({ error: 'Authentication failed', message: err.message }); // Send a 500 response with the error message
+        console.error('Error during Spotify authentication:', err);
+        res.status(500).json({ error: 'Authentication failed', message: err.message });
     }
 };
 // This code handles the authentication process with Spotify using OAuth 2.0.
-// It redirects the user to Spotify for login and handles the callback to exchange the authorization code for access and refresh tokens.    
+// It redirects the user to Spotify for login and handles the callback to exchange the authorization code for access and refresh tokens.

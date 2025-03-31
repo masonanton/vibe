@@ -6,7 +6,7 @@ exports.getPlaylistOutliers = async (req, res) => {
     const accessToken = req.headers['authorization']?.split(' ')[1]; // Extract the access token from the request headers
 
     try {
-        const playlistData = await spotifyService.getPlaylistData(playlistID, accessToken);
+        const playlistData = await spotifyService.getPlaylistData(playlistId, accessToken);
 
         const audioFeatures = await spotifyService.getAudioFeaturesForPlaylist(playlistData, accessToken);
 
@@ -22,7 +22,7 @@ exports.getPlaylistOutliers = async (req, res) => {
     
         res.json(outliers); // Send the outliers back to the client as a JSON response
     
-    } catch {
+    } catch (err) {
         console.error('Error during outlier detection:', err); // Log any errors that occur during outlier detection
         res.status(500).json({ error: 'Outlier detection failed', message: err.message }); // Send a 500 response with the error message
     }

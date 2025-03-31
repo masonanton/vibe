@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
@@ -7,13 +7,28 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Clear the access token on page load
+  useEffect(() => {
+    localStorage.removeItem('access_token');
+  }, []);
+
+  // Extract the access token from the URL and store it in localStorage
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const accessToken = params.get('access_token');
+    if (accessToken) {
+      localStorage.setItem('access_token', accessToken);
+      // Remove the access token from the URL to clean it up
+      window.history.replaceState({}, document.title, '/');
+    }
+  }, []);
+
   const handleAnalyze = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     setOutliers([]);
 
-    // Clean the input: if it's a URL, extract the playlist ID
     const trimmedInput = playlistId.trim();
     if (!trimmedInput) {
       setError('Please enter a valid playlist URL or ID.');
@@ -25,15 +40,16 @@ function App() {
     if (trimmedInput.includes('playlist/')) {
       const parts = trimmedInput.split('playlist/');
       id = parts[1].split('?')[0];
+      console.log(`Extracted playlist ID: ${id}`); // Log the extracted playlist ID for debugging
     }
 
     try {
-      // Call your backend endpoint to get playlist outliers
+      const accessToken = localStorage.getItem('access_token');
       const response = await fetch(`/api/playlist/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Pass along authorization headers if needed
+          Authorization: `Bearer ${accessToken}`,
         },
       });
       if (!response.ok) {
@@ -49,8 +65,13 @@ function App() {
   };
 
   const handleLogin = () => {
-    // Redirect to the backend's Spotify auth login route
+    console.log('Login button clicked');
     window.location.href = '/api/auth/login';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    window.location.reload();
   };
 
   return (
@@ -62,6 +83,9 @@ function App() {
       <div className="App-content">
         <button onClick={handleLogin} className="login-button">
           Login with Spotify
+        </button>
+        <button onClick={handleLogout} className="logout-button">
+          Logout
         </button>
         <form onSubmit={handleAnalyze} className="playlist-form">
           <input
