@@ -1,5 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const path = require('path'); // Import path module for serving static files
 
 // Import routes
 const authRoutes = require('../routes/authRoutes'); // Import auth routes
@@ -11,8 +12,18 @@ const app = express(); // Create an Express application
 
 app.use(express.json()); // Middleware to parse JSON request bodies 
 
+// API routes
 app.use('/api/auth', authRoutes); // Use auth routes for /api/auth endpoint
 app.use('/api/playlists', playlistRoutes); // Use playlist routes for /api/playlists endpoint
+
+// Serve static files from the React frontend
+const frontendPath = path.join(__dirname, '../../frontend/build');
+app.use(express.static(frontendPath));
+
+// Catch-all route to serve the React app for non-API routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -23,7 +34,7 @@ app.use((err, req, res, next) => {
     }); // Send a 500 response for any errors
 });
 
-const PORT = process.env.PORT || 3000; // Set the port from environment variable or default to 3000
+const PORT = process.env.PORT || 3001; // Set the port from environment variable or default to 3001
 
 // Start the server and listen on the specified port
 app.listen(PORT, () => {

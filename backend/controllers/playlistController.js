@@ -1,5 +1,5 @@
 const spotifyService = require('../services/spotifyService');
-const outlierDetection = require('../services/outlierDetectionService'); // Import the outlier detection service
+const outlierDetection = require('../services/outlierDetection'); // Import the outlier detection service
 
 exports.getPlaylistOutliers = async (req, res) => {
     const playlistId = req.params.id; // Get the playlist ID from the request parameters
