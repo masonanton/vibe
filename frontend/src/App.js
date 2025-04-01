@@ -11,12 +11,43 @@ function App() {
   // In development, backend is at localhost:3000; in production, use relative URL.
   const backendUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '';
 
+  // Refresh access token using refresh token
+  const refreshAccessToken = async () => {
+    const refresh_token = localStorage.getItem('refresh_token');
+    if (!refresh_token) return null;
+    try {
+      const response = await fetch(`${backendUrl}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token }),
+      });
+      if (!response.ok) throw new Error('Token refresh failed');
+      const data = await response.json();
+      localStorage.setItem('access_token', data.access_token);
+      // Optionally update expiration time if available
+      return data.access_token;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
   // On initial load: extract access token (if present) and clean URL.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('access_token');
-    if (token) {
-      localStorage.setItem('access_token', token);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const expiresIn = params.get('expires_in');
+    if (accessToken) {
+      localStorage.setItem('access_token', accessToken);
+      if (refreshToken) {
+        localStorage.setItem('refresh_token', refreshToken);
+      }
+      if (expiresIn) {
+        // Optionally, set an expiration time (in ms) for manual checks
+        const expirationTime = Date.now() + parseInt(expiresIn) * 1000;
+        localStorage.setItem('token_expiration', expirationTime);
+      }
       window.history.replaceState({}, document.title, '/');
     }
   }, []);
@@ -62,14 +93,27 @@ function App() {
     }
 
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/playlist/${id}`, {
+      let token = localStorage.getItem('access_token');
+      let response = await fetch(`/api/playlist/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
+      // If unauthorized, try refreshing the token
+      if (response.status === 401 || response.status === 403) {
+        token = await refreshAccessToken();
+        if (token) {
+          response = await fetch(`/api/playlist/${id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+      }
       if (!response.ok) {
         throw new Error('Error fetching playlist data');
       }

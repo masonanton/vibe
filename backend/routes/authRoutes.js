@@ -8,6 +8,9 @@ router.get('/login', authController.login);
 // Define the spotify callback route
 router.get('/callback', authController.callback);
 
+// Define the spotify refresh route
+router.post('/refresh', authController.refresh);
+
 module.exports = router; // Export the router to be used in other files
 // This code defines the authentication routes for the application using Express.js.
 

@@ -43,13 +43,38 @@ exports.callback = async (req, res) => {
             }
         );
 
-        // Extract the access token
-        const { access_token } = response.data;
-
-        // Redirect the user back to the frontend with the access token in the query
-        res.redirect(`${frontendUrl}/?access_token=${access_token}`);
+        const { access_token, refresh_token, expires_in } = response.data;
+        // Redirect to the frontend with access_token, refresh_token, and expires_in in query params
+        res.redirect(`${frontendUrl}/?access_token=${access_token}&refresh_token=${refresh_token}&expires_in=${expires_in}`);
     } catch (err) {
         console.error('Error during Spotify authentication:', err);
         res.status(500).json({ error: 'Authentication failed', message: err.message });
+    }
+};
+
+exports.refresh = async (req, res) => {
+    const { refresh_token } = req.body;
+    if (!refresh_token) {
+        return res.status(400).json({ error: 'Refresh token is missing.' });
+    }
+    try {
+        const response = await axios.post(
+            'https://accounts.spotify.com/api/token',
+            new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token,
+            }),
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+                },
+            }
+        );
+        const { access_token, expires_in } = response.data;
+        res.json({ access_token, expires_in });
+    } catch (err) {
+        console.error('Error refreshing token:', err.response?.data || err.message);
+        res.status(500).json({ error: 'Token refresh failed', message: err.message });
     }
 };

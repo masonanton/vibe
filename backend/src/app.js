@@ -14,7 +14,7 @@ app.use(express.json()); // Middleware to parse JSON request bodies
 
 // API routes
 app.use('/api/auth', authRoutes); // Use auth routes for /api/auth endpoint
-app.use('/api/playlists', playlistRoutes); // Use playlist routes for /api/playlists endpoint
+app.use('/api/playlist', playlistRoutes); // Use playlist routes for /api/playlists endpoint
 
 // Serve static files from the React frontend
 const frontendPath = path.join(__dirname, '../../frontend/build');
