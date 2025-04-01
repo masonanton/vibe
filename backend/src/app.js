@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const path = require('path'); // Import path module for serving static files
+const cors = require('cors'); // Import CORS middleware to enable cross-origin resource sharing
 
 // Import routes
 const authRoutes = require('../routes/authRoutes'); // Import auth routes
@@ -9,6 +10,8 @@ const playlistRoutes = require('../routes/playlistRoutes'); // Import playlist r
 dotenv.config(); // Load environment variables from .env file
 
 const app = express(); // Create an Express application
+
+app.use(cors()); // Enable CORS for all routes, allowing cross-origin requests
 
 app.use(express.json()); // Middleware to parse JSON request bodies 
 

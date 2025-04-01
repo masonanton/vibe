@@ -8,10 +8,8 @@ function App() {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
 
-  // In development, backend is at localhost:3000; in production, use relative URL.
   const backendUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '';
 
-  // Refresh access token using refresh token
   const refreshAccessToken = async () => {
     const refresh_token = localStorage.getItem('refresh_token');
     if (!refresh_token) return null;
@@ -24,7 +22,10 @@ function App() {
       if (!response.ok) throw new Error('Token refresh failed');
       const data = await response.json();
       localStorage.setItem('access_token', data.access_token);
-      // Optionally update expiration time if available
+      if (data.expires_in) {
+        const expirationTime = Date.now() + parseInt(data.expires_in) * 1000;
+        localStorage.setItem('token_expiration', expirationTime);
+      }
       return data.access_token;
     } catch (err) {
       console.error(err);
@@ -32,7 +33,6 @@ function App() {
     }
   };
 
-  // On initial load: extract access token (if present) and clean URL.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const accessToken = params.get('access_token');
@@ -44,7 +44,6 @@ function App() {
         localStorage.setItem('refresh_token', refreshToken);
       }
       if (expiresIn) {
-        // Optionally, set an expiration time (in ms) for manual checks
         const expirationTime = Date.now() + parseInt(expiresIn) * 1000;
         localStorage.setItem('token_expiration', expirationTime);
       }
@@ -52,26 +51,45 @@ function App() {
     }
   }, []);
 
-  // If an access token exists, fetch the Spotify user profile.
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      fetch('https://api.spotify.com/v1/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((response) => {
-          if (!response.ok) throw new Error('Failed to fetch profile');
-          return response.json();
+    const initializeUser = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+      const expiration = localStorage.getItem('token_expiration');
+
+      if (token && refreshToken && expiration) {
+        const now = Date.now();
+        if (now > parseInt(expiration)) {
+          console.log('🔁 Token expired. Refreshing...');
+          const newToken = await refreshAccessToken();
+          if (!newToken) {
+            console.warn('❌ Token refresh failed. Logging out.');
+            handleLogout();
+            return;
+          }
+        }
+      }
+
+      const finalToken = localStorage.getItem('access_token');
+      if (finalToken) {
+        fetch('https://api.spotify.com/v1/me', {
+          headers: { Authorization: `Bearer ${finalToken}` },
         })
-        .then((data) => setUser(data))
-        .catch((err) => {
-          console.error(err);
-          setError('Failed to fetch user profile.');
-        });
-    }
+          .then((response) => {
+            if (!response.ok) throw new Error('Failed to fetch profile');
+            return response.json();
+          })
+          .then((data) => setUser(data))
+          .catch((err) => {
+            console.error(err);
+            setError('Failed to fetch user profile.');
+          });
+      }
+    };
+
+    initializeUser();
   }, []);
 
-  // Handle analyzing a playlist (only available when logged in)
   const handleAnalyze = async (e) => {
     e.preventDefault();
     setError('');
@@ -94,6 +112,7 @@ function App() {
 
     try {
       let token = localStorage.getItem('access_token');
+      console.log(token);
       let response = await fetch(`/api/playlist/${id}`, {
         method: 'GET',
         headers: {
@@ -101,10 +120,12 @@ function App() {
           Authorization: `Bearer ${token}`,
         },
       });
-      // If unauthorized, try refreshing the token
+
       if (response.status === 401 || response.status === 403) {
+        console.log('Access token expired or invalid, attempting to refresh token');
         token = await refreshAccessToken();
         if (token) {
+          console.log(`Retrying fetch with new token: ${token}`);
           response = await fetch(`/api/playlist/${id}`, {
             method: 'GET',
             headers: {
@@ -114,27 +135,30 @@ function App() {
           });
         }
       }
+
       if (!response.ok) {
         throw new Error('Error fetching playlist data');
       }
+
       const data = await response.json();
       setOutliers(data.outliers || []);
     } catch (err) {
       console.error(err);
       setError('Failed to analyze the playlist. Please try again.');
     }
+
     setLoading(false);
   };
 
-  // When clicked, always go to the backend login endpoint.
   const handleLogin = () => {
     console.log('Login button clicked');
     window.location.href = `${backendUrl}/api/auth/login`;
   };
 
-  // Logout: clear the access token and reset state so the UI shows only the login button.
   const handleLogout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('token_expiration');
     setUser(null);
     setPlaylistId('');
     setOutliers([]);
@@ -162,7 +186,6 @@ function App() {
       </header>
       <div className="App-content">
         {!user ? (
-          // When not logged in, show only the login button.
           <button onClick={handleLogin} className="login-button">
             Login with Spotify
           </button>
@@ -171,7 +194,6 @@ function App() {
             <button onClick={handleLogout} className="logout-button">
               Logout
             </button>
-            {/* Display playlist functionality only for logged in users */}
             <form onSubmit={handleAnalyze} className="playlist-form">
               <input
                 type="text"

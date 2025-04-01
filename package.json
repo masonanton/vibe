@@ -24,6 +24,7 @@
   "homepage": "https://github.com/masonanton/vibe#readme",
   "dependencies": {
     "axios": "^0.27.2",
+    "cors": "^2.8.5", 
     "dotenv": "^16.0.0",
     "express": "^4.18.2",
     "concurrently": "^7.6.0",

@@ -1,53 +1,61 @@
-// This file will handle the calls to Spotify's API to fetch playlist data
+const axios = require('axios');
 
-const axios = require('axios'); // Import axios for making HTTP requests
-
+// Fetches metadata for a playlist by ID
 exports.getPlaylistData = async (playlistId, accessToken) => {
     try {
-        console.log('Access token:', accessToken); // Log the access token for debugging purposes
+        console.log('Access token in getPlaylistData:', accessToken);
         if (!accessToken) {
-            throw new Error('Access token is required to fetch playlist data.'); // Ensure the access token is provided
+            throw new Error('Access token is required to fetch playlist data.');
         }
+
         const response = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
             headers: {
-                Authorization: `Bearer ${accessToken}` // Set the authorization header with the access token
+                Authorization: `Bearer ${accessToken}`
             }
         });
-        return response.data; // Return the playlist data
+
+        return response.data;
     } catch (err) {
-        // Log the detailed error from Spotify
-        if (err.response && err.response.data) {
-            console.error('Error fetching playlist data:', err.response.data);
-        } else {
-            console.error('Error fetching playlist data:', err.message);
-        }
-        throw err; // Rethrow the error to be handled by the calling function
+        console.error('Error fetching playlist data:', err.response?.data || err.message);
+        throw err;
     }
 };
 
+// Fetches audio features for all tracks in the playlist, batching by 100 (Spotify limit)
 exports.getAudioFeaturesForPlaylist = async (playlistData, accessToken) => {
     const trackIds = playlistData.tracks.items
-        .map(item => item.track && item.track.id)
-        .filter(Boolean)
-        .join(',');
-        
+        .filter(item => item.track && item.track.id && !item.track.is_local)
+        .map(item => item.track.id);
+
+    console.log('Filtered track IDs:', trackIds);
+
     if (trackIds.length === 0) {
-        return []; // Return an empty array if no track IDs are found
+        console.warn('No valid track IDs found.');
+        return [];
     }
 
     try {
-        const response = await axios.get(`https://api.spotify.com/v1/audio-features?ids=${trackIds}`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}` // Set the authorization header with the access token
+        console.log('Access token in getAudioFeaturesForPlaylist:', accessToken);
+
+        const audioFeatures = [];
+
+        // Spotify API limit: 100 IDs per request
+        for (let i = 0; i < trackIds.length; i += 100) {
+            const batch = trackIds.slice(i, i + 100).join(',');
+            const response = await axios.get(`https://api.spotify.com/v1/audio-features?ids=${batch}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            if (response.data.audio_features) {
+                audioFeatures.push(...response.data.audio_features);
             }
-        });
-        return response.data.audio_features; // Return the audio features for the tracks
-    } catch (err) {
-        if (err.response && err.response.data) {
-            console.error('Error fetching audio features:', err.response.data);
-        } else {
-            console.error('Error fetching audio features:', err.message);
         }
-        throw err; // Rethrow the error to be handled by the calling function
+
+        return audioFeatures;
+    } catch (err) {
+        console.error('Error fetching audio features:', err.response?.data || err.message);
+        throw err;
     }
 };

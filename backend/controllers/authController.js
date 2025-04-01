@@ -15,7 +15,14 @@ console.log('Frontend URL:', process.env.FRONTEND_URL);
 
 // Redirect the user to Spotify for authentication
 exports.login = (req, res) => {
-    const scope = 'playlist-read-private'; // Define the scope for the Spotify API
+    const scope = [
+        'playlist-read-private',
+        'user-library-read',
+        'user-read-private',
+        'user-read-email',
+        'user-read-playback-state',
+        'user-read-recently-played'
+      ].join(' ');      
 
     // Construct the Spotify authorization URL with the necessary parameters
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
@@ -54,6 +61,7 @@ exports.callback = async (req, res) => {
 
 exports.refresh = async (req, res) => {
     const { refresh_token } = req.body;
+    console.log('Received request to refresh token with refresh_token:', refresh_token); // Debug log to check the received refresh token
     if (!refresh_token) {
         return res.status(400).json({ error: 'Refresh token is missing.' });
     }

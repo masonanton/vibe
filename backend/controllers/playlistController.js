@@ -1,3 +1,4 @@
+// playlistController.js
 const spotifyService = require('../services/spotifyService');
 const outlierDetection = require('../services/outlierDetection'); // Import the outlier detection service
 
@@ -7,7 +8,6 @@ exports.getPlaylistOutliers = async (req, res) => {
 
     try {
         const playlistData = await spotifyService.getPlaylistData(playlistId, accessToken);
-
         const audioFeatures = await spotifyService.getAudioFeaturesForPlaylist(playlistData, accessToken);
 
         if (!audioFeatures || audioFeatures.length === 0) {
@@ -21,9 +21,12 @@ exports.getPlaylistOutliers = async (req, res) => {
         }
     
         res.json(outliers); // Send the outliers back to the client as a JSON response
-    
     } catch (err) {
-        console.error('Error during outlier detection:', err); // Log any errors that occur during outlier detection
-        res.status(500).json({ error: 'Outlier detection failed', message: err.message }); // Send a 500 response with the error message
+        console.error('Error during outlier detection:', err);
+        // If the error comes from Spotify (401/403), pass that status to the client.
+        const status = (err.response && (err.response.status === 401 || err.response.status === 403))
+            ? err.response.status
+            : 500;
+        res.status(status).json({ error: 'Outlier detection failed', message: err.message });
     }
 };
